@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# This script will run a NAMD job to perform calculations from the NAMD tutorial 1-2
+# (Ubiquitin in a Water Sphere: Simulation with Non-Periodic Boundary Conditions).
+# Before attempting to run the script:
+# 1) Create a directory NAMD_test in your home directory
+# 2) Copy the files in /opt/NAMD/tutorials/1-2-Sphere to NAMD_test
+# 3) Copy the files in /opt/NAMD/tutorials/common to NAMD_test
+# 4) Modify ubq_ws_eq.conf, replacing ../common with ./common
+
+# Your job's name
+#PBS -N NAMD_test
+
+# Shell to use when executing script
+#PBS -S /bin/bash
+
+# Resource request settings
+###  Number of nodes and processors per node
+#PBS -l nodes=1:ppn=4
+
+###  Minimum memory requested
+#PBS -l mem=2048MB
+
+###  Maximum runtime. ** Jobs will be killed after this time limit **
+###  Comment out if unsure of time needed
+#PBS -l walltime=00:30:00
+
+# PBS queue (check /opt/README for queue names)
+#PBS -q serial_queue
+
+# E-mail when job starts and completes/aborts (b=begins, e=ends, a=aborts)
+#PBS -m abe
+#PBS -M your_e_mail@pitt.edu
+
+# set output (-o) and error (-e) files.  Default to jobName.o#### and jobName.e####
+#PBS -o NAMD_test.out.txt
+#PBS -e NAMD_test.err.txt
+
+# do not dump core debugging information
+ulimit -c 0
+
+# Set variables for convenience
+MY_JOB=NAMD_test
+
+NAMD_DIR=/usr/local/NAMD/NAMD_2.12_Linux-x86_64-multicore
+
+#scratch drive folder to work in
+SCRDIR=/scr/$PBS_JOBID
+
+# create working directory on /scr of node
+mkdir -p $SCRDIR
+
+# copy files to working directory (whole directory copy or individual file copy, depending on what's needed)
+rsync -auz $PBS_O_WORKDIR/ $SCRDIR/
+
+# change to working directory in /scr
+cd $SCRDIR
+
+# get number of cores
+NSLOTS=`cat $PBS_NODEFILE | wc -l`
+
+# commands to run follow here (export paths, environment variables, shell scripts, programs to run)
+$NAMD_DIR/namd2 +p$NSLOTS ubq_ws_eq.conf > NAMD_test.log
+
+# copy files back to home directory
+rsync -auz $SCRDIR/ $PBS_O_WORKDIR/
+
+# Leave this line to tell Torque that the script finished correctly
+exit 0
